@@ -8,6 +8,37 @@
     <artifactId>RemoteMessaging</artifactId>
     <version>1.0.0</version>
 
+    <name>RemoteMessaging</name>
+    <description>
+        This API helps you to send messages between a server and a client. It's supposed to work with computers out of the
+        same network, but I haven't tested it.
+    </description>
+    <url>https://github.com/KarmaConfigs/RemoteMessaging</url>
+
+    <licenses>
+        <license>
+            <name>GSA GPL 1.2</name>
+            <url>https://karmaconfigs.ml/license</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Karma Dev</name>
+            <email>karmaconfigs@gmail.com</email>
+            <organization>GSA</organization>
+            <organizationUrl>https://discord.gg/jRFfsdxnJR</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git://github.com/KarmaConfigs/RemoteMessaging.git</connection>
+        <developerConnection>scm:git:ssh://github.com:KarmaConfigs/RemoteMessaging.git</developerConnection>
+        <url>http://github.com/KarmaConfigs/RemoteMessaging/tree/master</url>
+        <tag>1.0.0</tag>
+    </scm>
+
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
@@ -51,7 +82,7 @@
                 <extensions>true</extensions>
                 <configuration>
                     <serverId>ossrh</serverId>
-                    <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
+                    <nexusUrl>https://oss.sonatype.org/</nexusUrl>
                     <autoReleaseAfterClose>true</autoReleaseAfterClose>
                 </configuration>
             </plugin>

@@ -14,49 +14,33 @@ package ml.karmaconfigs.remote.messaging.remote;
  * the version number 2.1.]
  */
 
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.InetAddress;
 
 /**
  * Remote server information
  */
-public final class RemoteServer {
-
-    private final InetAddress host;
-    private final int port;
-    private final DatagramSocket clientSocket;
-
-    /**
-     * Initialize the remote server
-     *
-     * @param address the server address
-     * @param incoming_port the server port
-     * @param client the client active socket
-     */
-    public RemoteServer(final InetAddress address, final int incoming_port, final DatagramSocket client) {
-        host = address;
-        port = incoming_port;
-        clientSocket = client;
-    }
+public abstract class RemoteServer {
 
     /**
      * Get the server address
      *
      * @return the server address
      */
-    public InetAddress getHost() {
-        return host;
-    }
+    public abstract InetAddress getHost();
+
+    /**
+     * Get the server MAC address
+     *
+     * @return the server MAC address
+     */
+    public abstract String getMAC();
 
     /**
      * Get the server port
      *
      * @return the server port
      */
-    public int getPort() {
-        return port;
-    }
+    public abstract int getPort();
 
     /**
      * Send a message to the server
@@ -64,32 +48,5 @@ public final class RemoteServer {
      * @param message the message to send
      * @return if the message could be sent
      */
-    public boolean sendMessage(final byte[] message) {
-        try {
-            DatagramPacket msg = createDataPacket(message);
-
-            if (msg != null) {
-                clientSocket.send(msg);
-                return true;
-            }
-
-            return false;
-        } catch (Throwable ex) {
-            return false;
-        }
-    }
-
-    /**
-     * Create a packet
-     *
-     * @param data the data to include in the packet
-     * @return the packet
-     */
-    private DatagramPacket createDataPacket(final byte[] data) {
-        try {
-            return new DatagramPacket(data, data.length, host, port);
-        } catch (Throwable ex) {
-            return null;
-        }
-    }
+    public abstract boolean sendMessage(final byte[] message);
 }
