@@ -14,6 +14,8 @@ package ml.karmaconfigs.remote.messaging.worker.tcp.remote;
  * the version number 2.1.]
  */
 
+import com.google.common.io.ByteArrayDataOutput;
+import com.google.common.io.ByteStreams;
 import ml.karmaconfigs.remote.messaging.remote.RemoteClient;
 
 import java.net.DatagramPacket;
@@ -97,10 +99,19 @@ public final class TCPRemoteClient extends RemoteClient {
      * @param message the message to send
      * @return if the message could be sent
      */
+    @Override
+    @SuppressWarnings("UnstableApiUsage")
     public boolean sendMessage(final byte[] message) {
         try {
-            ByteBuffer BUFFER = ByteBuffer.allocate(1024);
-            BUFFER.put(message);
+            ByteArrayDataOutput out = ByteStreams.newDataOutput();
+            out.writeUTF(getMAC());
+            out.writeBoolean(false);
+            out.writeInt((out.toByteArray().length + 4));
+            out.write(message);
+
+            ByteBuffer BUFFER = ByteBuffer.allocate(4056);
+            BUFFER.clear();
+            BUFFER.put(out.toByteArray());
             BUFFER.flip();
 
             serverSocket.write(BUFFER);

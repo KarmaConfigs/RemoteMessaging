@@ -17,6 +17,7 @@ package ml.karmaconfigs.remote.messaging;
 import ml.karmaconfigs.remote.messaging.remote.RemoteClient;
 import ml.karmaconfigs.remote.messaging.util.WorkLevel;
 
+import java.nio.file.Path;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -67,6 +68,22 @@ public abstract class Server {
     public abstract void close();
 
     /**
+     * Export the list of bans
+     *
+     * @param destination the file were to store
+     *                    the ban list
+     */
+    public abstract void exportBans(final Path destination);
+
+    /**
+     * Load the list of bans
+     *
+     * @param bans the file were the banned mac
+     *             addresses are stored
+     */
+    public abstract void loadBans(final Path bans);
+
+    /**
      * Send a message to each connected client
      *
      * @param data the data to send
@@ -84,21 +101,21 @@ public abstract class Server {
     /**
      * Ban an address from the server
      *
-     * @param address the addresses to ban
+     * @param macAddresses the addresses to ban
      */
-    public abstract void ban(final String... address);
+    public abstract void ban(final String... macAddresses);
 
     /**
      * Kick an address from the server
      *
-     * @param address the addresses to kick
+     * @param macAddresses the addresses to kick
      */
-    public abstract void kick(final String... address);
+    public abstract void kick(final String... macAddresses);
 
     /**
      * Unban an address from the server
      *
-     * @param address the addresses to unban
+     * @param macAddresses the addresses to unban
      */
-    public abstract void unBan(final String... address);
+    public abstract void unBan(final String... macAddresses);
 }

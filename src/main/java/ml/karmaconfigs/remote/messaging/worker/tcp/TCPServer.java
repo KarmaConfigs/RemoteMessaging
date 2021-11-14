@@ -19,6 +19,8 @@ import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import ml.karmaconfigs.api.common.karma.APISource;
 import ml.karmaconfigs.api.common.utils.enums.Level;
+import ml.karmaconfigs.api.common.utils.file.PathUtilities;
+import ml.karmaconfigs.api.common.utils.string.StringUtils;
 import ml.karmaconfigs.remote.messaging.Server;
 import ml.karmaconfigs.remote.messaging.listener.RemoteListener;
 import ml.karmaconfigs.remote.messaging.listener.event.server.ClientCommandEvent;
@@ -37,6 +39,9 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -163,6 +168,7 @@ public final class TCPServer extends Server {
                                                         ByteArrayDataOutput out = ByteStreams.newDataOutput();
                                                         out.writeBoolean(true);
                                                         out.writeUTF("accept");
+                                                        out.writeUTF(getMAC());
 
                                                         writeBuffer.put(out.toByteArray());
                                                         writeBuffer.flip();
@@ -172,10 +178,8 @@ public final class TCPServer extends Server {
                                                         ByteBuffer writeBuffer = ByteBuffer.allocate(10240);
 
                                                         ByteArrayDataOutput out = ByteStreams.newDataOutput();
+                                                        out.writeUTF(getMAC());
                                                         out.writeBoolean(true);
-                                                        out.writeUTF("failed");
-                                                        out.writeUTF("connect");
-                                                        out.writeUTF(argument);
                                                         out.writeUTF("You are banned from this server!");
 
                                                         writeBuffer.put(out.toByteArray());
@@ -199,6 +203,7 @@ public final class TCPServer extends Server {
                                                         ByteBuffer writeBuffer = ByteBuffer.allocate(10240);
 
                                                         ByteArrayDataOutput out = ByteStreams.newDataOutput();
+                                                        out.writeUTF(getMAC());
                                                         out.writeBoolean(true);
                                                         out.writeUTF("success");
                                                         out.writeUTF("rename");
@@ -212,6 +217,7 @@ public final class TCPServer extends Server {
                                                         ByteBuffer writeBuffer = ByteBuffer.allocate(10240);
 
                                                         ByteArrayDataOutput out = ByteStreams.newDataOutput();
+                                                        out.writeUTF(getMAC());
                                                         out.writeBoolean(true);
                                                         out.writeUTF("failed");
                                                         out.writeUTF("rename");
@@ -239,10 +245,10 @@ public final class TCPServer extends Server {
                                                         ByteBuffer writeBuffer = ByteBuffer.allocate(10240);
 
                                                         ByteArrayDataOutput out = ByteStreams.newDataOutput();
+                                                        out.writeUTF(getMAC());
                                                         out.writeBoolean(true);
                                                         out.writeUTF("failed");
                                                         out.writeUTF("disconnect");
-                                                        out.writeUTF(argument);
                                                         out.writeUTF("You are not connected to this server!");
 
                                                         writeBuffer.put(out.toByteArray());
@@ -263,6 +269,7 @@ public final class TCPServer extends Server {
                                                         ByteBuffer writeBuffer = ByteBuffer.allocate(10240);
 
                                                         ByteArrayDataOutput out = ByteStreams.newDataOutput();
+                                                        out.writeUTF(getMAC());
                                                         out.writeBoolean(true);
                                                         out.writeUTF("failed");
                                                         out.writeUTF("unknown");
@@ -293,23 +300,24 @@ public final class TCPServer extends Server {
                                                 for (int i = 0; i < newArray.size(); i++)
                                                     fixedArray[i] = newArray.get(i);
 
-                                                ClientMessageEvent event = new ClientMessageEvent(client, fixedArray);
-                                                RemoteListener.callServerEvent(event);
-
                                                 String line = new String(fixedArray, StandardCharsets.UTF_8);
 
                                                 ByteBuffer writeBuffer = ByteBuffer.allocate(90128);
 
                                                 ByteArrayDataOutput out = ByteStreams.newDataOutput();
+                                                out.writeUTF(getMAC());
                                                 out.writeBoolean(true);
                                                 out.writeUTF("success");
                                                 out.writeUTF("message");
-                                                out.writeUTF(line);
+                                                out.writeUTF(client.getName());
 
                                                 writeBuffer.put(out.toByteArray());
                                                 writeBuffer.flip();
 
                                                 channel.write(writeBuffer);
+
+                                                ClientMessageEvent event = new ClientMessageEvent(client, fixedArray);
+                                                RemoteListener.callServerEvent(event);
                                             } else {
                                                 if (debug) {
                                                     APISource.getConsole().send("Denying message from {0} because he's not connected to server", Level.WARNING, default_name);
@@ -318,6 +326,7 @@ public final class TCPServer extends Server {
                                                 ByteBuffer writeBuffer = ByteBuffer.allocate(10240);
 
                                                 ByteArrayDataOutput out = ByteStreams.newDataOutput();
+                                                out.writeUTF(getMAC());
                                                 out.writeBoolean(true);
                                                 out.writeUTF("failed");
                                                 out.writeUTF("message");
@@ -380,7 +389,7 @@ public final class TCPServer extends Server {
      */
     @Override
     public Set<RemoteClient> getClients() {
-        return null;
+        return new HashSet<>(clients.values());
     }
 
     /**
@@ -407,13 +416,57 @@ public final class TCPServer extends Server {
     }
 
     /**
+     * Export the list of bans
+     *
+     * @param destination the file were to store
+     *                    the ban list
+     */
+    @Override
+    public void exportBans(final Path destination) {
+        try {
+            PathUtilities.create(destination);
+
+            String serialized = StringUtils.serialize(new ArrayList<>(banned));
+            Files.write(destination, serialized.getBytes(), StandardOpenOption.CREATE);
+        } catch (Throwable ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    /**
+     * Load the list of bans
+     *
+     * @param bans the file were the banned mac
+     *             addresses are stored
+     */
+    @Override
+    public void loadBans(final Path bans) {
+        try {
+            PathUtilities.create(bans);
+
+            byte[] result = Files.readAllBytes(bans);
+            Object serialized = StringUtils.load(new String(result));
+
+            if (serialized instanceof ArrayList) {
+                ArrayList<?> list = (ArrayList<?>) serialized;
+                for (Object obj : list)
+                    ban(String.valueOf(obj));
+            }
+        } catch (Throwable ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    /**
      * Send a message to each connected client
      *
      * @param data the data to send
      */
     @Override
-    public void broadcast(byte[] data) {
-
+    public void broadcast(final byte[] data) {
+        for (RemoteClient client : clients.values()) {
+            client.sendMessage(data);
+        }
     }
 
     /**
@@ -423,38 +476,68 @@ public final class TCPServer extends Server {
      * @param data the message
      */
     @Override
-    public void redirect(String name, byte[] data) {
-
+    public void redirect(final String name, final byte[] data) {
+        for (RemoteClient client : clients.values()) {
+            if (client.getName().equals(name) || client.getMAC().equals(name)) {
+                client.sendMessage(data);
+            }
+        }
     }
 
     /**
      * Ban an address from the server
      *
-     * @param address the addresses to ban
+     * @param macAddresses the addresses to ban
      */
     @Override
-    public void ban(String... address) {
+    public void ban(final String... macAddresses) {
+        banned.addAll(Arrays.asList(macAddresses));
 
+        for (RemoteClient client : clients.values()) {
+            if (banned.contains(client.getMAC())) {
+                ByteArrayDataOutput out = ByteStreams.newDataOutput();
+                out.writeUTF(getMAC());
+                out.writeBoolean(true);
+                out.writeUTF("failed");
+                out.writeUTF("disconnect");
+                out.writeUTF("You have been banned from this server!");
+
+                client.sendMessage(out.toByteArray());
+            }
+        }
     }
 
     /**
      * Kick an address from the server
      *
-     * @param address the addresses to kick
+     * @param macAddresses the addresses to kick
      */
     @Override
-    public void kick(String... address) {
+    public void kick(final String... macAddresses) {
+        List<String> macs = Arrays.asList(macAddresses);
 
+        for (RemoteClient client : clients.values()) {
+            if (macs.contains(client.getMAC())) {
+                ByteArrayDataOutput out = ByteStreams.newDataOutput();
+                out.writeUTF(getMAC());
+                out.writeBoolean(true);
+                out.writeUTF("failed");
+                out.writeUTF("disconnect");
+                out.writeUTF("You have been kicked from this server!");
+
+                client.sendMessage(out.toByteArray());
+            }
+        }
     }
 
     /**
      * Unban an address from the server
      *
-     * @param address the addresses to unban
+     * @param macAddresses the addresses to unban
      */
     @Override
-    public void unBan(String... address) {
-
+    public void unBan(final String... macAddresses) {
+        Arrays.asList(macAddresses).forEach(banned::remove);
     }
 
     /**

@@ -20,8 +20,13 @@ import com.google.common.io.ByteStreams;
 import ml.karmaconfigs.api.common.karma.APISource;
 import ml.karmaconfigs.api.common.utils.enums.Level;
 import ml.karmaconfigs.remote.messaging.Client;
+import ml.karmaconfigs.remote.messaging.listener.RemoteListener;
+import ml.karmaconfigs.remote.messaging.listener.event.client.ServerConnectEvent;
+import ml.karmaconfigs.remote.messaging.listener.event.client.ServerDisconnectEvent;
+import ml.karmaconfigs.remote.messaging.listener.event.client.ServerMessageEvent;
 import ml.karmaconfigs.remote.messaging.remote.RemoteServer;
 import ml.karmaconfigs.remote.messaging.util.WorkLevel;
+import ml.karmaconfigs.remote.messaging.worker.tcp.remote.TCPRemoteServer;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -38,8 +43,10 @@ import java.util.concurrent.ConcurrentHashMap;
 @SuppressWarnings("UnstableApiUsage")
 public final class TCPClient extends Client {
 
-    private final static ByteBuffer BUFFER = ByteBuffer.allocate(2048);
+    private final static ByteBuffer BUFFER = ByteBuffer.allocate(4056);
     private final static Set<byte[]> data_queue = Collections.newSetFromMap(new ConcurrentHashMap<>());
+
+    private static RemoteServer remote = null;
 
     private static String client_name = "client_" + new Random().nextInt(Integer.MAX_VALUE);
     private static String server = "127.0.0.1";
@@ -161,6 +168,8 @@ public final class TCPClient extends Client {
                             ByteArrayDataInput input = ByteStreams.newDataInput(readBuffer.array());
                             if (input.readBoolean()) {
                                 if (input.readUTF().equalsIgnoreCase("accept")) {
+                                    remote = new TCPRemoteServer(input.readUTF(), InetAddress.getByName(server), sv_port, socket);
+
                                     if (debug) {
                                         APISource.getConsole().send("Connection has been validated by the server", Level.INFO);
                                     }
@@ -177,6 +186,9 @@ public final class TCPClient extends Client {
                                     award_connection = false;
                                     operative = true;
 
+                                    ServerConnectEvent event = new ServerConnectEvent(remote);
+                                    RemoteListener.callClientEvent(event);
+
                                     if (instant_close) {
                                         close();
                                     }
@@ -189,7 +201,7 @@ public final class TCPClient extends Client {
                 result.complete(true);
 
                 while (operative) {
-                    ByteBuffer readBuffer = ByteBuffer.allocate(1024);
+                    ByteBuffer readBuffer = ByteBuffer.allocate(4056);
                     int read = socket.read(readBuffer);
 
                     if (read == 0) {
@@ -203,63 +215,103 @@ public final class TCPClient extends Client {
                         }
                     } else {
                         ByteArrayDataInput input = ByteStreams.newDataInput(readBuffer.array());
-                        if (input.readBoolean()) {
-                            String command = input.readUTF();
-                            String argument = input.readUTF();
+                        String mac = input.readUTF();
+                        boolean isCommand = input.readBoolean();
+                        if (remote.getMAC().equals(mac)) {
+                            if (isCommand) {
+                                String command = input.readUTF();
+                                String argument = input.readUTF();
 
-                            switch (command.toLowerCase()) {
-                                case "success":
-                                    switch (argument.toLowerCase()) {
-                                        case "rename":
-                                            client_name = input.readUTF();
+                                switch (command.toLowerCase()) {
+                                    case "success":
+                                        switch (argument.toLowerCase()) {
+                                            case "rename":
+                                                client_name = input.readUTF();
 
-                                            if (debug) {
-                                                APISource.getConsole().send("Server accepted the new client name: {0}", Level.INFO, client_name);
-                                            }
-                                            break;
-                                        case "message":
-                                            if (debug) {
-                                                APISource.getConsole().send("{0} to server: {1}", Level.INFO, input.readUTF(), input.readUTF());
-                                            }
-                                            break;
-                                        case "unknown":
-                                            if (debug) {
-                                                APISource.getConsole().send("{0} ran custom command: {1} ( {2} )", Level.INFO, input.readUTF(), input.readUTF(), input.readUTF());
-                                            }
-                                            break;
-                                        default:
-                                            if (debug) {
-                                                APISource.getConsole().send("Unknown command from server: {0} ( {1} )", Level.WARNING, command, argument);
-                                            }
-                                            break;
+                                                if (debug) {
+                                                    APISource.getConsole().send("Server accepted the new client name: {0}", Level.INFO, client_name);
+                                                }
+                                                break;
+                                            case "message":
+                                                if (debug) {
+                                                    APISource.getConsole().send("{0} to server: {1}", Level.INFO, input.readUTF(), new String(BUFFER.array()));
+                                                }
+                                                break;
+                                            case "unknown":
+                                                if (debug) {
+                                                    APISource.getConsole().send("{0} ran custom command: {1} ( {2} )", Level.INFO, input.readUTF(), input.readUTF(), input.readUTF());
+                                                }
+                                                break;
+                                            default:
+                                                if (debug) {
+                                                    APISource.getConsole().send("Unknown command from server: {0} ( {1} )", Level.WARNING, command, argument);
+                                                }
+                                                break;
+                                        }
+                                        break;
+                                    case "failed":
+                                        switch (argument.toLowerCase()) {
+                                            case "connect":
+                                                String name = input.readUTF();
+                                                String reason = input.readUTF();
+
+                                                APISource.getConsole().send("Server declined connection as {0}, because: {1}", Level.GRAVE, name, reason);
+
+                                                ServerDisconnectEvent connectEvent = new ServerDisconnectEvent(remote, reason);
+                                                RemoteListener.callClientEvent(connectEvent);
+
+                                                break;
+                                            case "rename":
+                                                APISource.getConsole().send("Failed to change client name to {0}: {1}", Level.GRAVE, input.readUTF(), input.readUTF());
+                                                break;
+                                            case "disconnect":
+                                                APISource.getConsole().send("Failed while trying to disconnect the server ( you've been disconnected anyway ): {0}", Level.GRAVE, input.readUTF());
+
+                                                ServerDisconnectEvent disconnectEvent = new ServerDisconnectEvent(remote, "no server reason...");
+                                                RemoteListener.callClientEvent(disconnectEvent);
+
+                                                break;
+                                            case "message":
+                                                APISource.getConsole().send("Failed while trying to send a message to server: {0}", Level.GRAVE, input.readUTF());
+                                                break;
+                                            case "unknown":
+                                                APISource.getConsole().send("Failed while trying to execute custom command {0} with argument {1}: {2}", Level.GRAVE, input.readUTF(), input.readUTF(), input.readUTF());
+                                                break;
+                                            default:
+                                                if (debug) {
+                                                    APISource.getConsole().send("Unknown command from server: {0} ( {1} )", Level.WARNING, command, argument);
+                                                }
+                                                break;
+                                        }
+                                        break;
+                                    case "disconnect":
+                                        String reason = input.readUTF();
+                                        APISource.getConsole().send("Connection killed by server: {0}", Level.GRAVE, reason);
+
+                                        ServerDisconnectEvent event = new ServerDisconnectEvent(remote, reason);
+                                        RemoteListener.callClientEvent(event);
+
+                                        close();
+                                        break;
+                                }
+                            } else {
+                                int offset = input.readInt();
+                                int max = readBuffer.array().length;
+
+                                List<Byte> newArray = new ArrayList<>();
+                                for (int i = 0; i < max; i++) {
+                                    if (i >= offset) {
+                                        newArray.add(readBuffer.array()[i]);
                                     }
-                                    break;
-                                case "failed":
-                                    switch (argument.toLowerCase()) {
-                                        case "connect":
-                                            APISource.getConsole().send("Server declined connection as {0}, because: {1}", Level.GRAVE, input.readUTF(), input.readUTF());
-                                            break;
-                                        case "rename":
-                                            APISource.getConsole().send("Failed to change client name to {0}: {1}", Level.GRAVE, input.readUTF(), input.readUTF());
-                                            break;
-                                        case "disconnect":
-                                            APISource.getConsole().send("Failed while trying to disconnect the server ( you've been disconnected anyway ): {0}", Level.GRAVE, input.readUTF());
-                                            break;
-                                        case "message":
-                                            APISource.getConsole().send("Failed while trying to send a message to server: {0}", Level.GRAVE, input.readUTF());
-                                            break;
-                                        case "unknown":
-                                            APISource.getConsole().send("Failed while trying to execute custom command {0} with argument {1}: {2}", Level.GRAVE, input.readUTF(), input.readUTF(), input.readUTF());
-                                            break;
-                                        default:
-                                            if (debug) {
-                                                APISource.getConsole().send("Unknown command from server: {0} ( {1} )", Level.WARNING, command, argument);
-                                            }
-                                            break;
-                                    }
+                                }
+
+                                byte[] fixedArray = new byte[newArray.size()];
+                                for (int i = 0; i < newArray.size(); i++)
+                                    fixedArray[i] = newArray.get(i);
+
+                                ServerMessageEvent event = new ServerMessageEvent(remote, fixedArray);
+                                RemoteListener.callClientEvent(event);
                             }
-                        } else {
-                            APISource.getConsole().send("New message from server", Level.INFO);
                         }
                     }
                 }
@@ -313,7 +365,7 @@ public final class TCPClient extends Client {
      */
     @Override
     public RemoteServer getServer() {
-        return null;
+        return remote;
     }
 
     /**
