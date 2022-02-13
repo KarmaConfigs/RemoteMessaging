@@ -105,6 +105,7 @@ public class MyClass {
         //Server server = factory.createServer().debug(true);
         //Client client = factory.createClient().debug(true);
 
+        //This part is completely optional
         Path bansPath = new File("./bans.txt").toPath();
         server.loadBans(bansPath);
 
@@ -172,7 +173,6 @@ public class MyClass {
         
         server = server.certsLocation(globalCerts);
         client = client.certsLocation(globalCerts);
-        //End of optional part
         
         /*
         According to this example, the certificates path should be:
@@ -185,6 +185,7 @@ public class MyClass {
         */
         
         server.loadBans(bansPath);
+        //End of optional part
 
         server.start().whenComplete((sv_result, sv_error) -> {
             if (sv_result) {
