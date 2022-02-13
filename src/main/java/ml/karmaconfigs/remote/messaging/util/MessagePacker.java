@@ -17,6 +17,8 @@ package ml.karmaconfigs.remote.messaging.util;
 import ml.karmaconfigs.api.common.utils.string.StringUtils;
 
 import java.io.Serializable;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Message data packer
@@ -24,6 +26,7 @@ import java.io.Serializable;
 public final class MessagePacker implements Serializable {
 
     private final byte[] original;
+    private final Map<String, byte[]> sub = new ConcurrentHashMap<>();
 
     /**
      * Initialize the message packer

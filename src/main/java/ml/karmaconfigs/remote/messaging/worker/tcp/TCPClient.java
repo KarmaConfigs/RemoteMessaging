@@ -14,18 +14,21 @@ package ml.karmaconfigs.remote.messaging.worker.tcp;
  * the version number 2.1.]
  */
 
-import com.google.common.io.ByteArrayDataInput;
-import com.google.common.io.ByteArrayDataOutput;
-import com.google.common.io.ByteStreams;
-import ml.karmaconfigs.api.common.karma.APISource;
+import ml.karmaconfigs.api.common.Console;
+import ml.karmaconfigs.api.common.timer.scheduler.LateScheduler;
+import ml.karmaconfigs.api.common.timer.scheduler.worker.AsyncLateScheduler;
+import ml.karmaconfigs.api.common.utils.PrefixConsoleData;
 import ml.karmaconfigs.api.common.utils.enums.Level;
-import ml.karmaconfigs.remote.messaging.Client;
+import ml.karmaconfigs.api.common.utils.string.StringUtils;
+import ml.karmaconfigs.remote.messaging.platform.Client;
 import ml.karmaconfigs.remote.messaging.listener.RemoteListener;
 import ml.karmaconfigs.remote.messaging.listener.event.client.ServerConnectEvent;
 import ml.karmaconfigs.remote.messaging.listener.event.client.ServerDisconnectEvent;
 import ml.karmaconfigs.remote.messaging.listener.event.client.ServerMessageEvent;
 import ml.karmaconfigs.remote.messaging.remote.RemoteServer;
 import ml.karmaconfigs.remote.messaging.util.WorkLevel;
+import ml.karmaconfigs.remote.messaging.util.message.*;
+import ml.karmaconfigs.remote.messaging.util.message.type.MergeType;
 import ml.karmaconfigs.remote.messaging.worker.tcp.remote.TCPRemoteServer;
 
 import java.net.InetAddress;
@@ -34,40 +37,46 @@ import java.net.NetworkInterface;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Remote message client interface
  */
-@SuppressWarnings("UnstableApiUsage")
 public final class TCPClient extends Client {
+    
+    private final Set<byte[]> data_queue = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
-    private final static ByteBuffer BUFFER = ByteBuffer.allocate(4056);
-    private final static Set<byte[]> data_queue = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private RemoteServer remote = null;
 
-    private static RemoteServer remote = null;
+    private String client_name = "client_" + new Random().nextInt(Integer.MAX_VALUE);
+    private String server = "127.0.0.1";
+    private String key = "";
 
-    private static String client_name = "client_" + new Random().nextInt(Integer.MAX_VALUE);
-    private static String server = "127.0.0.1";
+    private int sv_port = 49305;
+    private int client = 49300;
 
-    private static int sv_port = 49305;
-    private static int client = 49300;
+    private boolean debug = false;
+    private boolean operative = false;
+    private boolean instant_close = false;
+    private boolean award_connection = false;
+    private boolean tryingConnect = true;
 
-    private static boolean debug = false;
-    private static boolean operative = false;
-    private static boolean instant_close = false;
-    private static boolean award_connection = false;
-    private static boolean tryingConnect = true;
+    private SocketChannel socket;
 
-    private static SocketChannel socket;
+    private final Console console = new Console(this);
 
     /**
      * Initialize a default client that
      * will connect to local server at
      * default port 49305
      */
-    public TCPClient() {}
+    public TCPClient() {
+        PrefixConsoleData data = console.getData();
+        data.setOkPrefix("&3[TCP Client (&aOK&3)]&b ");
+        data.setInfoPrefix("&3[TCP Client (&7INFO&3)]&b ");
+        data.setWarnPrefix("&3[TCP Client (&eWARNING&3)]&b ");
+        data.setGravePrefix("&3[TCP Client (&4ERROR&3)]&b ");
+    }
 
     /**
      * Initialize a client that will connect
@@ -79,6 +88,12 @@ public final class TCPClient extends Client {
     public TCPClient(final String server_host, final int server_port) {
         server = server_host;
         sv_port = server_port;
+
+        PrefixConsoleData data = console.getData();
+        data.setOkPrefix("&3[TCP Client (&aOK&3)]&b ");
+        data.setInfoPrefix("&3[TCP Client (&7INFO&3)]&b ");
+        data.setWarnPrefix("&3[TCP Client (&eWARNING&3)]&b ");
+        data.setGravePrefix("&3[TCP Client (&4ERROR&3)]&b ");
     }
 
     /**
@@ -94,6 +109,12 @@ public final class TCPClient extends Client {
         client = client_port;
         server = server_host;
         sv_port = server_port;
+
+        PrefixConsoleData data = console.getData();
+        data.setOkPrefix("&3[TCP Client (&aOK&3)]&b ");
+        data.setInfoPrefix("&3[TCP Client (&7INFO&3)]&b ");
+        data.setWarnPrefix("&3[TCP Client (&eWARNING&3)]&b ");
+        data.setGravePrefix("&3[TCP Client (&4ERROR&3)]&b ");
     }
 
     /**
@@ -115,213 +136,275 @@ public final class TCPClient extends Client {
      * @return a completable future when the client connects
      */
     @Override
-    public CompletableFuture<Boolean> connect() {
-        CompletableFuture<Boolean> result = new CompletableFuture<>();
+    public LateScheduler<Boolean> connect() {
+        if (!operative) {
+            LateScheduler<Boolean> result = new AsyncLateScheduler<>();
 
-        Thread thread = new Thread(() -> {
-            try {
-                if (debug) {
-                    APISource.getConsole().send("Initializing the connection with the server", Level.INFO);
-                }
+            Thread thread = new Thread(() -> {
+                try {
+                    if (debug) {
+                        console.send("Initializing the connection with the server", Level.INFO);
+                    }
 
-                socket = SocketChannel.open().bind(new InetSocketAddress(client));
-                socket.configureBlocking(false);
-                socket.connect(new InetSocketAddress(server, sv_port));
+                    socket = SocketChannel.open().bind(new InetSocketAddress(client));
+                    socket.configureBlocking(false);
+                    socket.connect(new InetSocketAddress(server, sv_port));
 
-                while (!socket.finishConnect()) {
-                    if (tryingConnect) {
-                        if (debug) {
-                            APISource.getConsole().send("Trying to establish a connection with {0}/{1}", Level.INFO, server, sv_port);
+                    while (!socket.finishConnect()) {
+                        if (tryingConnect) {
+                            if (debug) {
+                                console.send("Trying to establish a connection with {0}/{1}", Level.INFO, server, sv_port);
+                            }
+
+                            tryingConnect = false;
+                        }
+                    }
+
+                    award_connection = true;
+                    tryingConnect = true;
+
+                    if (debug) {
+                        console.send("The connection has been established but the client is still waiting for server confirmation, data can be started to be sent", Level.WARNING, server, sv_port);
+                    }
+
+                    while (award_connection) {
+                        if (instant_close) {
+                            close();
+                            tryingConnect = false;
+                            award_connection = false;
+                            operative = false;
                         }
 
-                        tryingConnect = false;
-                    }
-                }
+                        if (tryingConnect) {
+                            MessageOutput output = new MessageDataOutput();
+                            output.write("MAC", getMAC());
+                            output.write("COMMAND_ENABLED", true);
+                            output.write("COMMAND", "connect");
+                            output.write("ARGUMENT", client_name);
+                            if (!StringUtils.isNullOrEmpty(key)) {
+                                output.write("ACCESS_KEY", key);
+                            }
 
-                award_connection = true;
-                tryingConnect = true;
+                            byte[] compile = output.compile();
 
-                if (debug) {
-                    APISource.getConsole().send("The connection has been established, waiting for the server to validate the connection", Level.INFO, server, sv_port);
-                }
+                            ByteBuffer tmp = ByteBuffer.wrap(compile);
+                            socket.write(tmp);
 
-                while (award_connection) {
-                    ByteBuffer readBuffer = ByteBuffer.allocate(1024);
-                    socket.read(readBuffer);
+                            tryingConnect = false;
+                        }
 
-                    if (tryingConnect) {
-                        BUFFER.clear();
-                        ByteArrayDataOutput out = ByteStreams.newDataOutput();
-                        out.writeUTF(getMAC());
-                        out.writeBoolean(true);
-                        out.writeUTF("connect");
-                        out.writeUTF(client_name);
+                        ByteBuffer tmpBuffer = ByteBuffer.allocate(5120);
+                        int read = socket.read(tmpBuffer);
 
-                        BUFFER.put(out.toByteArray());
-                        BUFFER.flip();
+                        if (read != 0) {
+                            ByteBuffer readBuffer = DataFixer.fixBuffer(tmpBuffer);
 
-                        socket.write(BUFFER);
+                            if (!operative) {
+                                MessageInput input = new MessageDataInput(readBuffer.array());
+                                if (input.getBoolean("COMMAND_ENABLED")) {
+                                    String sequence = input.getString("COMMAND");
+                                    String mac = input.getString("MAC");
+                                    if (sequence != null && mac != null) {
+                                        if (sequence.equalsIgnoreCase("accept")) {
+                                            remote = new TCPRemoteServer(mac, InetAddress.getByName(server), sv_port, socket);
 
-                        tryingConnect = false;
-                    } else {
-                        if (!operative) {
-                            ByteArrayDataInput input = ByteStreams.newDataInput(readBuffer.array());
-                            if (input.readBoolean()) {
-                                if (input.readUTF().equalsIgnoreCase("accept")) {
-                                    remote = new TCPRemoteServer(input.readUTF(), InetAddress.getByName(server), sv_port, socket);
+                                            if (debug) {
+                                                console.send("Connection has been validated by the server", Level.OK);
+                                            }
 
-                                    if (debug) {
-                                        APISource.getConsole().send("Connection has been validated by the server", Level.INFO);
-                                    }
+                                            for (byte[] data : data_queue) {
+                                                ByteBuffer tmp = ByteBuffer.wrap(data);
 
-                                    for (byte[] data : data_queue) {
-                                        BUFFER.clear();
-                                        BUFFER.put(data);
-                                        BUFFER.flip();
+                                                socket.write(tmp);
+                                                data_queue.remove(data);
+                                            }
 
-                                        socket.write(BUFFER);
-                                        data_queue.remove(data);
-                                    }
+                                            award_connection = false;
+                                            operative = true;
 
-                                    award_connection = false;
-                                    operative = true;
+                                            ServerConnectEvent event = new ServerConnectEvent(remote);
+                                            RemoteListener.callClientEvent(event);
+                                        } else {
+                                            String argument = input.getString("ARGUMENT");
+                                            if (argument != null) {
+                                                if (argument.equalsIgnoreCase("connect")) {
+                                                    instant_close = true;
+                                                    result.complete(false);
 
-                                    ServerConnectEvent event = new ServerConnectEvent(remote);
-                                    RemoteListener.callClientEvent(event);
-
-                                    if (instant_close) {
-                                        close();
+                                                    String reason = input.getString("COMMAND_ARGUMENT");
+                                                    if (reason != null) {
+                                                        console.send("Connection has been declined by the server ({0})", Level.GRAVE, reason);
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-                }
 
-                result.complete(true);
+                    result.complete(true);
 
-                while (operative) {
-                    ByteBuffer readBuffer = ByteBuffer.allocate(4056);
-                    int read = socket.read(readBuffer);
+                    while (operative) {
+                        ByteBuffer tmpBuffer = ByteBuffer.allocate(4056);
+                        int read = socket.read(tmpBuffer);
 
-                    if (read == 0) {
-                        for (byte[] queue : data_queue) {
-                            BUFFER.clear();
-                            BUFFER.put(queue);
-                            BUFFER.flip();
+                        if (read == 0) {
+                            for (byte[] queue : data_queue) {
+                                ByteBuffer tmp = ByteBuffer.wrap(queue);
 
-                            socket.write(BUFFER);
-                            data_queue.remove(queue);
-                        }
-                    } else {
-                        ByteArrayDataInput input = ByteStreams.newDataInput(readBuffer.array());
-                        String mac = input.readUTF();
-                        boolean isCommand = input.readBoolean();
-                        if (remote.getMAC().equals(mac)) {
-                            if (isCommand) {
-                                String command = input.readUTF();
-                                String argument = input.readUTF();
+                                socket.write(tmp);
+                                data_queue.remove(queue);
+                            }
+                        } else {
+                            ByteBuffer readBuffer = DataFixer.fixBuffer(tmpBuffer);
 
-                                switch (command.toLowerCase()) {
-                                    case "success":
-                                        switch (argument.toLowerCase()) {
-                                            case "rename":
-                                                client_name = input.readUTF();
+                            MessageInput input = new MessageDataInput(readBuffer.array());
+                            String mac = input.getString("MAC");
+                            boolean isCommand = input.getBoolean("COMMAND_ENABLED");
+                            if (remote.getMAC().equals(mac)) {
+                                if (isCommand) {
+                                    String command = input.getString("COMMAND");
+                                    String argument = input.getString("ARGUMENT");
 
-                                                if (debug) {
-                                                    APISource.getConsole().send("Server accepted the new client name: {0}", Level.INFO, client_name);
+                                    if (command != null && argument != null) {
+                                        String data;
+
+                                        switch (command.toLowerCase()) {
+                                            case "success":
+                                                switch (argument.toLowerCase()) {
+                                                    case "rename":
+                                                        client_name = input.getString("ARGUMENT_DATA");
+
+                                                        if (client_name != null && debug) {
+                                                            console.send("Server accepted the new client name: {0}", Level.OK, client_name);
+                                                        }
+                                                        break;
+                                                    case "message":
+                                                        data = input.getString("ARGUMENT_DATA");
+                                                        if (data != null && debug) {
+                                                            console.send("{0} to server: {1}", Level.INFO, data, new String(readBuffer.array()));
+                                                        }
+                                                        break;
+                                                    case "unknown":
+                                                        data = input.getString("ARGUMENT_DATA");
+
+                                                        if (data != null && debug) {
+                                                            String[] arg_data = data.split(",");
+
+                                                            console.send("{0} ran custom command: {1} ( {2} )", Level.WARNING, arg_data[0], arg_data[1], arg_data[2]);
+                                                        }
+                                                        break;
+                                                    default:
+                                                        if (debug) {
+                                                            console.send("Unknown command from server: {0} ( {1} )", Level.GRAVE, command, argument);
+                                                        }
+                                                        break;
                                                 }
                                                 break;
-                                            case "message":
-                                                if (debug) {
-                                                    APISource.getConsole().send("{0} to server: {1}", Level.INFO, input.readUTF(), new String(BUFFER.array()));
-                                                }
-                                                break;
-                                            case "unknown":
-                                                if (debug) {
-                                                    APISource.getConsole().send("{0} ran custom command: {1} ( {2} )", Level.INFO, input.readUTF(), input.readUTF(), input.readUTF());
-                                                }
-                                                break;
-                                            default:
-                                                if (debug) {
-                                                    APISource.getConsole().send("Unknown command from server: {0} ( {1} )", Level.WARNING, command, argument);
-                                                }
-                                                break;
-                                        }
-                                        break;
-                                    case "failed":
-                                        switch (argument.toLowerCase()) {
-                                            case "connect":
-                                                String name = input.readUTF();
-                                                String reason = input.readUTF();
+                                            case "failed":
+                                                switch (argument.toLowerCase()) {
+                                                    case "connect":
+                                                        data = input.getString("ARGUMENT_DATA");
+                                                        if (data != null) {
+                                                            String[] connect_data = data.split(",");
+                                                            String name = connect_data[0];
+                                                            String reason = connect_data[1];
 
-                                                APISource.getConsole().send("Server declined connection as {0}, because: {1}", Level.GRAVE, name, reason);
+                                                            console.send("Server declined connection as {0}, because: {1}", Level.GRAVE, name, reason);
 
-                                                ServerDisconnectEvent connectEvent = new ServerDisconnectEvent(remote, reason);
-                                                RemoteListener.callClientEvent(connectEvent);
+                                                            ServerDisconnectEvent connectEvent = new ServerDisconnectEvent(remote, reason);
+                                                            RemoteListener.callClientEvent(connectEvent);
+                                                        }
 
-                                                break;
-                                            case "rename":
-                                                APISource.getConsole().send("Failed to change client name to {0}: {1}", Level.GRAVE, input.readUTF(), input.readUTF());
+                                                        break;
+                                                    case "rename":
+                                                        data = input.getString("ARGUMENT_DATA");
+                                                        if (data != null) {
+                                                            String[] rename_data = data.split(",");
+                                                            console.send("Failed to change client name to {0}: {1}", Level.GRAVE, rename_data[0], rename_data[1]);
+                                                        }
+
+                                                        break;
+                                                    case "disconnect":
+                                                        data = input.getString("ARGUMENT_DATA");
+
+                                                        if (data != null) {
+                                                            console.send("Failed while trying to disconnect the server ( you've been disconnected anyway ): {0}", Level.GRAVE, data);
+
+                                                            ServerDisconnectEvent disconnectEvent = new ServerDisconnectEvent(remote, "no server reason...");
+                                                            RemoteListener.callClientEvent(disconnectEvent);
+                                                        }
+
+                                                        break;
+                                                    case "message":
+                                                        data = input.getString("ARGUMENT_DATA");
+                                                        if (data != null) {
+                                                            console.send("Failed while trying to send a message to server: {0}", Level.GRAVE, data);
+                                                        }
+                                                        break;
+                                                    case "unknown":
+                                                        data = input.getString("ARGUMENT_DATA");
+                                                        if (data != null) {
+                                                            String[] unknown_data = data.split(",");
+                                                            console.send("Failed while trying to execute custom command {0} with argument {1}: {2}", Level.GRAVE, unknown_data[0], unknown_data[1], unknown_data[2]);
+                                                        }
+
+                                                        break;
+                                                    default:
+                                                        if (debug) {
+                                                            console.send("Unknown command from server: {0} ( {1} )", Level.WARNING, command, argument);
+                                                        }
+                                                        break;
+                                                }
                                                 break;
                                             case "disconnect":
-                                                APISource.getConsole().send("Failed while trying to disconnect the server ( you've been disconnected anyway ): {0}", Level.GRAVE, input.readUTF());
-
-                                                ServerDisconnectEvent disconnectEvent = new ServerDisconnectEvent(remote, "no server reason...");
-                                                RemoteListener.callClientEvent(disconnectEvent);
-
-                                                break;
-                                            case "message":
-                                                APISource.getConsole().send("Failed while trying to send a message to server: {0}", Level.GRAVE, input.readUTF());
-                                                break;
-                                            case "unknown":
-                                                APISource.getConsole().send("Failed while trying to execute custom command {0} with argument {1}: {2}", Level.GRAVE, input.readUTF(), input.readUTF(), input.readUTF());
-                                                break;
-                                            default:
-                                                if (debug) {
-                                                    APISource.getConsole().send("Unknown command from server: {0} ( {1} )", Level.WARNING, command, argument);
+                                                String reason = input.getString("ARGUMENT_DATA");
+                                                if (reason != null) {
+                                                    console.send("Connection killed by server: {0}", Level.GRAVE, reason);
                                                 }
+
+                                                ServerDisconnectEvent event = new ServerDisconnectEvent(remote, reason);
+                                                RemoteListener.callClientEvent(event);
+
+                                                close();
                                                 break;
                                         }
-                                        break;
-                                    case "disconnect":
-                                        String reason = input.readUTF();
-                                        APISource.getConsole().send("Connection killed by server: {0}", Level.GRAVE, reason);
-
-                                        ServerDisconnectEvent event = new ServerDisconnectEvent(remote, reason);
-                                        RemoteListener.callClientEvent(event);
-
-                                        close();
-                                        break;
-                                }
-                            } else {
-                                int offset = input.readInt();
-                                int max = readBuffer.array().length;
-
-                                List<Byte> newArray = new ArrayList<>();
-                                for (int i = 0; i < max; i++) {
-                                    if (i >= offset) {
-                                        newArray.add(readBuffer.array()[i]);
                                     }
+                                } else {
+                                    ServerMessageEvent event = new ServerMessageEvent(remote, input);
+                                    RemoteListener.callClientEvent(event);
                                 }
-
-                                byte[] fixedArray = new byte[newArray.size()];
-                                for (int i = 0; i < newArray.size(); i++)
-                                    fixedArray[i] = newArray.get(i);
-
-                                ServerMessageEvent event = new ServerMessageEvent(remote, fixedArray);
-                                RemoteListener.callClientEvent(event);
                             }
                         }
                     }
+                } catch (Throwable ex) {
+                    result.complete(false, ex);
                 }
-            } catch (Throwable ex) {
-                result.complete(false);
-            }
-        });
-        thread.start();
+            });
+            thread.start();
 
-        return result;
+            return result;
+        }
+
+        return null;
+    }
+
+    /**
+     * Try to connect to the server
+     *
+     * @param accessKey the server access key
+     * @return a completable future when the client connects
+     */
+    @Override
+    public LateScheduler<Boolean> connect(final String accessKey) {
+        if (!operative) {
+            key = accessKey;
+            return connect();
+        }
+
+        return null;
     }
 
     /**
@@ -385,24 +468,27 @@ public final class TCPClient extends Client {
      */
     @Override
     public void rename(final String name) {
-        ByteArrayDataOutput out = ByteStreams.newDataOutput();
-        out.writeUTF(getMAC());
-        out.writeBoolean(true);
-        out.writeUTF("rename");
-        out.writeUTF(name);
+        if (award_connection || operative) {
+            client_name = name;
 
-        try {
-            if (debug) {
-                APISource.getConsole().send("Trying to inform the server about the name change request to {0}", Level.INFO, name);
+            MessageOutput output = new MessageDataOutput();
+            output.write("MAC", getMAC());
+            output.write("COMMAND_ENABLED", true);
+            output.write("COMMAND", "rename");
+            output.write("ARGUMENT", client_name);
+
+            try {
+                if (debug) {
+                    console.send("Trying to inform the server about the name change request to {0}", Level.INFO, name);
+                }
+
+                byte[] compile = output.compile();
+                ByteBuffer tmp = ByteBuffer.wrap(compile);
+
+                socket.write(tmp);
+            } catch (Throwable ex) {
+                data_queue.add(output.compile());
             }
-
-            BUFFER.clear();
-            BUFFER.put(out.toByteArray());
-            BUFFER.flip();
-
-            socket.write(BUFFER);
-        } catch (Throwable ex) {
-            data_queue.add(out.toByteArray());
         }
     }
 
@@ -413,20 +499,19 @@ public final class TCPClient extends Client {
      */
     @Override
     public void send(final byte[] data) {
-        ByteArrayDataOutput out = ByteStreams.newDataOutput();
-        out.writeUTF(getMAC());
-        out.writeBoolean(false);
-        out.writeInt((out.toByteArray().length + 4));
-        out.write(data);
+        if (award_connection || operative) {
+            MessageOutput output = new MessageDataOutput(data, MergeType.DIFFERENCE);
+            output.write("MAC", getMAC());
+            output.write("COMMAND_ENABLED", false);
 
-        try {
-            BUFFER.clear();
-            BUFFER.put(out.toByteArray());
-            BUFFER.flip();
+            try {
+                byte[] compile = output.compile();
+                ByteBuffer tmp = ByteBuffer.wrap(compile);
 
-            socket.write(BUFFER);
-        } catch (Throwable ex) {
-            data_queue.add(out.toByteArray());
+                socket.write(tmp);
+            } catch (Throwable ex) {
+                data_queue.add(output.compile());
+            }
         }
     }
 
@@ -437,18 +522,68 @@ public final class TCPClient extends Client {
     public void close() {
         if (operative) {
             try {
-                ByteArrayDataOutput out = ByteStreams.newDataOutput();
-                out.writeUTF(getMAC());
-                out.writeBoolean(true);
-                out.writeUTF("disconnect");
-                out.writeUTF("Client disconnect request");
+                MessageOutput output = new MessageDataOutput();
+                output.write("MAC", getMAC());
+                output.write("COMMAND_ENABLED", true);
+                output.write("COMMAND", "disconnect");
+                output.write("ARGUMENT", "Client disconnect request");
 
-                data_queue.add(out.toByteArray());
+                data_queue.add(output.compile());
             } catch (Throwable ex) {
                 ex.printStackTrace();
             }
         } else {
             instant_close = true;
         }
+    }
+
+    /**
+     * Karma source name
+     *
+     * @return the source name
+     */
+    @Override
+    public String name() {
+        return "TCP Client";
+    }
+
+    /**
+     * Karma source version
+     *
+     * @return the source version
+     */
+    @Override
+    public String version() {
+        return "0";
+    }
+
+    /**
+     * Karma source description
+     *
+     * @return the source description
+     */
+    @Override
+    public String description() {
+        return "TCP client to connect to a TCP server that has been created with RemoteMessaging API";
+    }
+
+    /**
+     * Karma source authors
+     *
+     * @return the source authors
+     */
+    @Override
+    public String[] authors() {
+        return new String[]{"KarmaDev"};
+    }
+
+    /**
+     * Karma source update URL
+     *
+     * @return the source update URL
+     */
+    @Override
+    public String updateURL() {
+        return null;
     }
 }

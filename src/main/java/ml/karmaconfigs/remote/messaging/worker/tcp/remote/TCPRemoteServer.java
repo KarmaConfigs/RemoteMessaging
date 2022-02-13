@@ -14,12 +14,11 @@ package ml.karmaconfigs.remote.messaging.worker.tcp.remote;
  * the version number 2.1.]
  */
 
-import com.google.common.io.ByteArrayDataOutput;
-import com.google.common.io.ByteStreams;
 import ml.karmaconfigs.remote.messaging.remote.RemoteServer;
+import ml.karmaconfigs.remote.messaging.util.message.MessageDataOutput;
+import ml.karmaconfigs.remote.messaging.util.message.MessageOutput;
+import ml.karmaconfigs.remote.messaging.util.message.type.MergeType;
 
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
@@ -86,20 +85,16 @@ public final class TCPRemoteServer extends RemoteServer {
      * @return if the message could be sent
      */
     @Override
-    @SuppressWarnings("UnstableApiUsage")
     public boolean sendMessage(final byte[] message) {
         try {
-            ByteArrayDataOutput out = ByteStreams.newDataOutput();
-            out.writeUTF(getMAC());
-            out.writeBoolean(false);
-            out.writeInt((out.toByteArray().length + 4));
-            out.write(message);
+            MessageOutput output = new MessageDataOutput(message, MergeType.DIFFERENCE);
+            output.write("MAC", getMAC());
+            output.write("COMMAND_ENABLED", false);
 
-            ByteBuffer BUFFER = ByteBuffer.allocate(4056);
-            BUFFER.put(out.toByteArray());
-            BUFFER.flip();
+            byte[] compile = output.compile();
+            ByteBuffer buffer = ByteBuffer.wrap(compile);
 
-            clientSocket.write(BUFFER);
+            clientSocket.write(buffer);
             return true;
         } catch (Throwable ex) {
             return false;

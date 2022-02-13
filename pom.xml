@@ -6,7 +6,7 @@
 
     <groupId>ml.karmaconfigs</groupId>
     <artifactId>RemoteMessaging</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.4</version>
 
     <name>RemoteMessaging</name>
     <description>
@@ -149,13 +149,24 @@
         <dependency>
             <groupId>ml.karmaconfigs</groupId>
             <artifactId>KarmaAPI-Common</artifactId>
-            <version>1.3.1-SNAPSHOT</version>
+            <!--suppress MavenPackageUpdate -->
+            <version>1.3.2-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
+        <!--
+        RemoteMessaging has its own message data output/input as of 1.0.3
+
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>31.0.1-jre</version>
+            <scope>compile</scope>
+        </dependency>
+        -->
+        <dependency>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
+            <version>22.0.0</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>

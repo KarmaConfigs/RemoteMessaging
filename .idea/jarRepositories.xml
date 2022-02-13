@@ -7,14 +7,64 @@
       <option name="url" value="https://repo.maven.apache.org/maven2" />
     </remote-repository>
     <remote-repository>
+      <option name="id" value="sonatypeNewSnapshot" />
+      <option name="name" value="Sonatype New Snapshots" />
+      <option name="url" value="https://s01.oss.sonatype.org/content/repositories/snapshots" />
+    </remote-repository>
+    <remote-repository>
       <option name="id" value="central" />
       <option name="name" value="Maven Central repository" />
       <option name="url" value="https://repo1.maven.org/maven2" />
     </remote-repository>
     <remote-repository>
+      <option name="id" value="sonatypeLegacy" />
+      <option name="name" value="Sonatype Legacy" />
+      <option name="url" value="https://oss.sonatype.org/content/repositories/releases" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="sonatypeNewSnapshot" />
+      <option name="name" value="Sonatype New Snapshots" />
+      <option name="url" value="https://s01.oss.sonatype.org/content/repositories/snapshots/" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="sonatypeLegacy" />
+      <option name="name" value="Sonatype Legacy" />
+      <option name="url" value="https://oss.sonatype.org/content/repositories/releases/" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="sonatypeLegacySnapshot" />
+      <option name="name" value="Sonatype Legacy Snapshots" />
+      <option name="url" value="https://oss.sonatype.org/content/repositories/snapshots" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="sonatypeNew" />
+      <option name="name" value="Sonatype New" />
+      <option name="url" value="https://s01.oss.sonatype.org/content/repositories/releases" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="icm" />
+      <option name="name" value="ICM repo" />
+      <option name="url" value="http://maven.icm.edu.pl/artifactory/repo/" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="icm" />
+      <option name="name" value="ICM repo" />
+      <option name="url" value="http://maven.icm.edu.pl/artifactory/repo" />
+    </remote-repository>
+    <remote-repository>
       <option name="id" value="jboss.community" />
       <option name="name" value="JBoss Community repository" />
       <option name="url" value="https://repository.jboss.org/nexus/content/repositories/public/" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="sonatypeNew" />
+      <option name="name" value="Sonatype New" />
+      <option name="url" value="https://s01.oss.sonatype.org/content/repositories/releases/" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="sonatypeLegacySnapshot" />
+      <option name="name" value="Sonatype Legacy Snapshots" />
+      <option name="url" value="https://oss.sonatype.org/content/repositories/snapshots/" />
     </remote-repository>
   </component>
 </project>

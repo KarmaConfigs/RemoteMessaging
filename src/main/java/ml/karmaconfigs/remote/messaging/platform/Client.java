@@ -1,4 +1,4 @@
-package ml.karmaconfigs.remote.messaging;
+package ml.karmaconfigs.remote.messaging.platform;
 
 /*
  * GNU LESSER GENERAL PUBLIC LICENSE
@@ -14,15 +14,15 @@ package ml.karmaconfigs.remote.messaging;
  * the version number 2.1.]
  */
 
+import ml.karmaconfigs.api.common.karma.KarmaSource;
+import ml.karmaconfigs.api.common.timer.scheduler.LateScheduler;
 import ml.karmaconfigs.remote.messaging.remote.RemoteServer;
 import ml.karmaconfigs.remote.messaging.util.WorkLevel;
-
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Remote message client interface
  */
-public abstract class Client {
+public abstract class Client implements KarmaSource {
 
     /**
      * Set the client debug status
@@ -37,7 +37,15 @@ public abstract class Client {
      *
      * @return a completable future when the client connects
      */
-    public abstract CompletableFuture<Boolean> connect();
+    public abstract LateScheduler<Boolean> connect();
+
+    /**
+     * Try to connect to the server
+     *
+     * @param accessKey the server access key
+     * @return a completable future when the client connects
+     */
+    public abstract LateScheduler<Boolean> connect(final String accessKey);
 
     /**
      * Get the client name

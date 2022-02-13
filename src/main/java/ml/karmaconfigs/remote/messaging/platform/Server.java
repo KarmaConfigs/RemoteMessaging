@@ -1,4 +1,4 @@
-package ml.karmaconfigs.remote.messaging;
+package ml.karmaconfigs.remote.messaging.platform;
 
 /*
  * GNU LESSER GENERAL PUBLIC LICENSE
@@ -14,17 +14,19 @@ package ml.karmaconfigs.remote.messaging;
  * the version number 2.1.]
  */
 
+import ml.karmaconfigs.api.common.karma.KarmaSource;
+import ml.karmaconfigs.api.common.timer.scheduler.LateScheduler;
 import ml.karmaconfigs.remote.messaging.remote.RemoteClient;
 import ml.karmaconfigs.remote.messaging.util.WorkLevel;
+import ml.karmaconfigs.remote.messaging.util.message.MessageOutput;
 
 import java.nio.file.Path;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Remote message server interface
  */
-public abstract class Server {
+public abstract class Server implements KarmaSource {
 
     /**
      * Set the server debug status
@@ -39,7 +41,15 @@ public abstract class Server {
      *
      * @return a completable future when the server starts
      */
-    public abstract CompletableFuture<Boolean> start();
+    public abstract LateScheduler<Boolean> start();
+
+    /**
+     * Try to start the server
+     *
+     * @param accessKey the server access key
+     * @return a completable future when the server starts
+     */
+    public abstract LateScheduler<Boolean> start(final String accessKey);
 
     /**
      * Get the server MAC address
@@ -88,7 +98,7 @@ public abstract class Server {
      *
      * @param data the data to send
      */
-    public abstract void broadcast(final byte[] data);
+    public abstract void broadcast(final MessageOutput data);
 
     /**
      * Redirect a message to the specified client
@@ -96,7 +106,7 @@ public abstract class Server {
      * @param name the client name
      * @param data the message
      */
-    public abstract void redirect(final String name, final byte[] data);
+    public abstract void redirect(final String name, final MessageOutput data);
 
     /**
      * Ban an address from the server

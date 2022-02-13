@@ -24,7 +24,6 @@ public class ClientCommandEvent extends ServerEvent {
 
     private final String command;
     private final String information;
-    private final byte[] raw;
 
     /**
      * Initialize the server event
@@ -32,14 +31,12 @@ public class ClientCommandEvent extends ServerEvent {
      * @param remote the remote client
      * @param cmd the command
      * @param inf the command information
-     * @param t the raw command
      */
-    public ClientCommandEvent(final RemoteClient remote, final String cmd, final String inf, final byte[] t) {
+    public ClientCommandEvent(final RemoteClient remote, final String cmd, final String inf) {
         super(remote);
 
         command = cmd;
         information = inf;
-        raw = t;
     }
 
     /**
@@ -58,14 +55,5 @@ public class ClientCommandEvent extends ServerEvent {
      */
     public final String getInformation() {
         return information;
-    }
-
-    /**
-     * Get the raw command
-     *
-     * @return the raw command
-     */
-    public final byte[] getRawCommand() {
-        return raw;
     }
 }

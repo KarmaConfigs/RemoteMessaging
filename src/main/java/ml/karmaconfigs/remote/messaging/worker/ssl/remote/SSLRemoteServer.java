@@ -1,4 +1,4 @@
-package ml.karmaconfigs.remote.messaging.worker.tcp.remote;
+package ml.karmaconfigs.remote.messaging.worker.ssl.remote;
 
 /*
  * GNU LESSER GENERAL PUBLIC LICENSE
@@ -14,67 +14,45 @@ package ml.karmaconfigs.remote.messaging.worker.tcp.remote;
  * the version number 2.1.]
  */
 
-import ml.karmaconfigs.remote.messaging.remote.RemoteClient;
+import ml.karmaconfigs.remote.messaging.remote.RemoteServer;
 import ml.karmaconfigs.remote.messaging.util.message.MessageDataOutput;
 import ml.karmaconfigs.remote.messaging.util.message.MessageOutput;
 import ml.karmaconfigs.remote.messaging.util.message.type.MergeType;
 
 import java.net.InetAddress;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
 /**
- * Remote client information
+ * Remote server information
  */
-public final class TCPRemoteClient extends RemoteClient {
+public final class SSLRemoteServer extends RemoteServer {
 
-    private final String name;
     private final String MAC;
     private final InetAddress host;
     private final int port;
-    private final SocketChannel serverSocket;
+    private final Socket clientSocket;
 
     /**
-     * Initialize the remote client
+     * Initialize the remote server
      *
-     * @param client the client name
-     * @param m the client MAC address
-     * @param address the client address
-     * @param incoming_port the client port
-     * @param server the server active socket
+     * @param m the server MAC address
+     * @param address the server address
+     * @param incoming_port the server port
+     * @param client the client active socket
      */
-    public TCPRemoteClient(final String client, final String m, final InetAddress address, final int incoming_port, final SocketChannel server) {
-        name = client;
+    public SSLRemoteServer(final String m, final InetAddress address, final int incoming_port, final Socket client) {
         MAC = m;
         host = address;
         port = incoming_port;
-        serverSocket = server;
+        clientSocket = client;
     }
 
     /**
-     * Get the client name
+     * Get the server address
      *
-     * @return the client name
-     */
-    @Override
-    public String getName() {
-        return name;
-    }
-
-    /**
-     * Get the client MAC address
-     *
-     * @return the client MAC address
-     */
-    @Override
-    public String getMAC() {
-        return MAC;
-    }
-
-    /**
-     * Get the client address
-     *
-     * @return the client address
+     * @return the server address
      */
     @Override
     public InetAddress getHost() {
@@ -82,9 +60,19 @@ public final class TCPRemoteClient extends RemoteClient {
     }
 
     /**
-     * Get the client port
+     * Get the server MAC address
      *
-     * @return the client port
+     * @return the server MAC address
+     */
+    @Override
+    public String getMAC() {
+        return MAC;
+    }
+
+    /**
+     * Get the server port
+     *
+     * @return the server port
      */
     @Override
     public int getPort() {
@@ -92,22 +80,22 @@ public final class TCPRemoteClient extends RemoteClient {
     }
 
     /**
-     * Send a message to the client
+     * Send a message to the server
      *
      * @param message the message to send
      * @return if the message could be sent
      */
     @Override
-    public boolean sendMessage(final MessageOutput message) {
+    public boolean sendMessage(final byte[] message) {
         try {
             MessageOutput output = new MessageDataOutput(message, MergeType.DIFFERENCE);
             output.write("MAC", getMAC());
             output.write("COMMAND_ENABLED", false);
 
             byte[] compile = output.compile();
-            ByteBuffer buffer = ByteBuffer.wrap(compile);
 
-            serverSocket.write(buffer);
+            clientSocket.getOutputStream().write(compile);
+            clientSocket.getOutputStream().flush();
             return true;
         } catch (Throwable ex) {
             return false;

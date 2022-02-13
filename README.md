@@ -92,9 +92,9 @@ public class MyListener implements RemoteMessagingListener {
 ```java
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
-import ml.karmaconfigs.remote.messaging.Client;
+import ml.karmaconfigs.remote.messaging.platform.Client;
 import ml.karmaconfigs.remote.messaging.Factory;
-import ml.karmaconfigs.remote.messaging.Server;
+import ml.karmaconfigs.remote.messaging.platform.Server;
 import ml.karmaconfigs.remote.messaging.listener.RemoteListener;
 import ml.karmaconfigs.remote.messaging.listener.RemoteMessagingListener;
 import ml.karmaconfigs.remote.messaging.util.WorkLevel;
@@ -116,7 +116,7 @@ public class MyClass {
 
         Path bansPath = new File("./bans.txt").toPath();
         server.loadBans(bansPath);
-        
+
         server.start().whenComplete((sv_result, sv_error) -> {
             if (sv_result) {
                 client.connect().whenComplete((cl_result, cl_error) -> {
@@ -135,7 +135,7 @@ public class MyClass {
 
                         System.out.println("Failed to connect to server");
                         System.exit(1);
-                        
+
                         RemoteListener.unRegister(listenerId);
                     }
                 });

@@ -1,4 +1,4 @@
-package ml.karmaconfigs.remote.messaging.worker.tcp.remote;
+package ml.karmaconfigs.remote.messaging.worker.ssl.remote;
 
 /*
  * GNU LESSER GENERAL PUBLIC LICENSE
@@ -20,19 +20,20 @@ import ml.karmaconfigs.remote.messaging.util.message.MessageOutput;
 import ml.karmaconfigs.remote.messaging.util.message.type.MergeType;
 
 import java.net.InetAddress;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
 /**
  * Remote client information
  */
-public final class TCPRemoteClient extends RemoteClient {
+public final class SSLRemoteClient extends RemoteClient {
 
     private final String name;
     private final String MAC;
     private final InetAddress host;
     private final int port;
-    private final SocketChannel serverSocket;
+    private final Socket serverSocket;
 
     /**
      * Initialize the remote client
@@ -43,7 +44,7 @@ public final class TCPRemoteClient extends RemoteClient {
      * @param incoming_port the client port
      * @param server the server active socket
      */
-    public TCPRemoteClient(final String client, final String m, final InetAddress address, final int incoming_port, final SocketChannel server) {
+    public SSLRemoteClient(final String client, final String m, final InetAddress address, final int incoming_port, final Socket server) {
         name = client;
         MAC = m;
         host = address;
@@ -105,9 +106,9 @@ public final class TCPRemoteClient extends RemoteClient {
             output.write("COMMAND_ENABLED", false);
 
             byte[] compile = output.compile();
-            ByteBuffer buffer = ByteBuffer.wrap(compile);
 
-            serverSocket.write(buffer);
+            serverSocket.getOutputStream().write(compile);
+            serverSocket.getOutputStream().flush();
             return true;
         } catch (Throwable ex) {
             return false;
