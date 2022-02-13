@@ -222,6 +222,25 @@ public class MyClass {
 
 I won't explain how you can generate keys and certificates, instead I will share you a very simple batch script for Windows I made to generate key certificates in an 'easy' way
 
+The default values I usually use:
+
+### Server
+- (Alias): <It doesn't really matter>
+- (Algorithm): RSA
+- (Password): <I don't really care meanwhile it's secure>
+- (Store): <It doesn't really matter>
+- (Extension): pfx
+- (Store type): PKCS12
+
+### Client
+- (Alias): <It doesn't really matter, I would recommend to make it different from server>
+- (Algorithm): RSA
+- (Password): <I don't really care meanwhile it's secure>
+- (Store): <It doesn't really matter unless it's the same as server. Not kidding, do not use the same as you used for server>
+- (Extension): pfx
+- (Store type): PKCS12
+
+
 ```bat
 @echo off
 echo Welcome to Karma key tool generator
