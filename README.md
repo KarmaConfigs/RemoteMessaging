@@ -1,7 +1,7 @@
 # RemoteMessaging
 
 This API allows you to setup client to server communication using<br>
-TCP, UDP (under maintenance) or SSL/TSL sockets.
+TCP, UDP (under maintenance) or SSL/TLS sockets.
 
 ## Usage
 The usage of this API is very simple, just create a Factory instance<br>
@@ -15,7 +15,7 @@ UDP _Not implemented_
 - The packet won't arrive always
 - Fast
 
-SSL/TSL
+SSL/TLS
 - Secure
 
 ### The listener class is optional
@@ -139,7 +139,7 @@ public class MyClass {
 }
 ```
 
-### Util class for SSL/TSL socket
+### Util class for SSL/TLS socket
 
 ```java
 import ml.karmaconfigs.remote.messaging.util.message.MessageOutput
