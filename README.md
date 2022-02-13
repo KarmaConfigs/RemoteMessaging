@@ -1,7 +1,7 @@
 # RemoteMessaging
 
 This API allows you to setup client to server communication using<br>
-TCP or UDP (under maintenance) sockets.
+TCP, UDP (under maintenance) or SSL/TSL sockets.
 
 ## Usage
 The usage of this API is very simple, just create a Factory instance<br>
