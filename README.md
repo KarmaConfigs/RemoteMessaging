@@ -166,11 +166,13 @@ public class MyClass {
         //SecureServer server = factory.createServer().debug(true);
         //SecureClient client = factory.createClient().debug(true);
 
+        //This part is completely optional
         Path bansPath = new File("./bans.txt").toPath();
         Path globalCerts = new File("./certs/").toPath();
         
         server = server.certsLocation(globalCerts);
         client = client.certsLocation(globalCerts);
+        //End of optional part
         
         /*
         According to this example, the certificates path should be:
