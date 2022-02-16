@@ -462,6 +462,35 @@ public final class TCPClient extends Client {
     }
 
     /**
+     * Get if the client is trying to connect to the
+     * server
+     *
+     * @return if the client is trying to connect to
+     * the server
+     */
+    @Override
+    public boolean isConnecting() {
+        return tryingConnect || award_connection;
+    }
+
+    /**
+     * Get if the client is completely connected
+     * to the server
+     *
+     * @return if the client is connected
+     */
+    @Override
+    public boolean isConnected() {
+        try {
+            ByteBuffer tmp = ByteBuffer.allocate(1024);
+
+            return socket != null && socket.read(tmp) != -1;
+        } catch (Throwable ex) {
+            return false;
+        }
+    }
+
+    /**
      * Rename the client on the server interface
      *
      * @param name the client name

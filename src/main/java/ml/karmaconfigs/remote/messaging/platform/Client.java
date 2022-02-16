@@ -76,6 +76,23 @@ public abstract class Client implements KarmaSource {
     public abstract WorkLevel getWorkLevel();
 
     /**
+     * Get if the client is trying to connect to the
+     * server
+     *
+     * @return if the client is trying to connect to
+     * the server
+     */
+    public abstract boolean isConnecting();
+
+    /**
+     * Get if the client is completely connected
+     * to the server
+     *
+     * @return if the client is connected
+     */
+    public abstract boolean isConnected();
+
+    /**
      * Rename the client on the server interface
      *
      * @param name the client name

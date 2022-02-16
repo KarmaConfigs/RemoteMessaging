@@ -27,7 +27,6 @@ import ml.karmaconfigs.remote.messaging.listener.event.client.ServerConnectEvent
 import ml.karmaconfigs.remote.messaging.listener.event.client.ServerDisconnectEvent;
 import ml.karmaconfigs.remote.messaging.listener.event.client.ServerMessageEvent;
 import ml.karmaconfigs.remote.messaging.platform.SecureClient;
-import ml.karmaconfigs.remote.messaging.platform.SecureServer;
 import ml.karmaconfigs.remote.messaging.remote.RemoteServer;
 import ml.karmaconfigs.remote.messaging.util.WorkLevel;
 import ml.karmaconfigs.remote.messaging.util.message.*;
@@ -37,7 +36,6 @@ import ml.karmaconfigs.remote.messaging.worker.ssl.remote.SSLRemoteServer;
 import javax.net.ssl.*;
 import java.io.*;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -575,6 +573,33 @@ public final class SSLClient extends SecureClient {
     @Override
     public WorkLevel getWorkLevel() {
         return WorkLevel.TCP;
+    }
+
+    /**
+     * Get if the client is trying to connect to the
+     * server
+     *
+     * @return if the client is trying to connect to
+     * the server
+     */
+    @Override
+    public boolean isConnecting() {
+        return tryingConnect || award_connection;
+    }
+
+    /**
+     * Get if the client is completely connected
+     * to the server
+     *
+     * @return if the client is connected
+     */
+    @Override
+    public boolean isConnected() {
+        try {
+            return socket.getInputStream().read() != -1;
+        } catch (Throwable ex) {
+            return false;
+        }
     }
 
     /**

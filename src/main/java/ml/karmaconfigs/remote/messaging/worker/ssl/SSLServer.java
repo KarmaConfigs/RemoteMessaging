@@ -22,7 +22,6 @@ import ml.karmaconfigs.api.common.utils.PrefixConsoleData;
 import ml.karmaconfigs.api.common.utils.enums.Level;
 import ml.karmaconfigs.api.common.utils.file.PathUtilities;
 import ml.karmaconfigs.api.common.utils.string.StringUtils;
-import ml.karmaconfigs.remote.messaging.platform.SecureClient;
 import ml.karmaconfigs.remote.messaging.platform.SecureServer;
 import ml.karmaconfigs.remote.messaging.listener.RemoteListener;
 import ml.karmaconfigs.remote.messaging.listener.event.server.ClientCommandEvent;
