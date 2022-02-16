@@ -16,12 +16,14 @@ package ml.karmaconfigs.remote.messaging.listener.event.server;
 
 import ml.karmaconfigs.remote.messaging.listener.ServerEvent;
 import ml.karmaconfigs.remote.messaging.remote.RemoteClient;
+import ml.karmaconfigs.remote.messaging.remote.RemoteServer;
 
 /**
  * Receive command from client to server event
  */
 public class ClientCommandEvent extends ServerEvent {
 
+    private final RemoteServer server;
     private final String command;
     private final String information;
 
@@ -29,14 +31,25 @@ public class ClientCommandEvent extends ServerEvent {
      * Initialize the server event
      *
      * @param remote the remote client
+     * @param sv the remote server
      * @param cmd the command
      * @param inf the command information
      */
-    public ClientCommandEvent(final RemoteClient remote, final String cmd, final String inf) {
+    public ClientCommandEvent(final RemoteClient remote, final RemoteServer sv, final String cmd, final String inf) {
         super(remote);
 
+        server = sv;
         command = cmd;
         information = inf;
+    }
+
+    /**
+     * Get the remote server
+     *
+     * @return the remote server
+     */
+    public RemoteServer getServer() {
+        return server;
     }
 
     /**

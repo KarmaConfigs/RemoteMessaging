@@ -15,6 +15,7 @@ package ml.karmaconfigs.remote.messaging.listener.event.client;
  */
 
 import ml.karmaconfigs.remote.messaging.listener.ClientEvent;
+import ml.karmaconfigs.remote.messaging.remote.RemoteClient;
 import ml.karmaconfigs.remote.messaging.remote.RemoteServer;
 
 /**
@@ -22,20 +23,37 @@ import ml.karmaconfigs.remote.messaging.remote.RemoteServer;
  */
 public class ServerDisconnectEvent extends ClientEvent {
 
+    private final RemoteClient client;
     private final String reason;
 
     /**
      * Initialize the client event
      *
      * @param remote the remote server
+     * @param cl the remote client
      * @param r the disconnect reason
      */
-    public ServerDisconnectEvent(final RemoteServer remote, final String r) {
+    public ServerDisconnectEvent(final RemoteServer remote, final RemoteClient cl, final String r) {
         super(remote);
 
+        client = cl;
         reason = r;
     }
 
+    /**
+     * Get the remote client
+     *
+     * @return the remote client
+     */
+    public RemoteClient getClient() {
+        return client;
+    }
+
+    /**
+     * Get the disconnect reason
+     *
+     * @return the disconnect reason
+     */
     public final String getReason() {
         return reason;
     }

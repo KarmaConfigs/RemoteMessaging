@@ -19,20 +19,20 @@ import ml.karmaconfigs.remote.messaging.util.message.MessageDataOutput;
 import ml.karmaconfigs.remote.messaging.util.message.MessageOutput;
 import ml.karmaconfigs.remote.messaging.util.message.type.MergeType;
 
+import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Remote server information
  */
-public final class SSLRemoteServer extends RemoteServer {
+public class SSLRemoteServer extends RemoteServer {
 
     private final String MAC;
     private final InetAddress host;
     private final int port;
-    private final Socket clientSocket;
+    private final Socket serverSocket;
 
     /**
      * Initialize the remote server
@@ -40,13 +40,13 @@ public final class SSLRemoteServer extends RemoteServer {
      * @param m the server MAC address
      * @param address the server address
      * @param incoming_port the server port
-     * @param client the client active socket
+     * @param socket the server active socket
      */
-    public SSLRemoteServer(final String m, final InetAddress address, final int incoming_port, final Socket client) {
+    public SSLRemoteServer(final String m, final InetAddress address, final int incoming_port, final Socket socket) {
         MAC = m;
         host = address;
         port = incoming_port;
-        clientSocket = client;
+        serverSocket = socket;
     }
 
     /**
@@ -94,8 +94,9 @@ public final class SSLRemoteServer extends RemoteServer {
 
             byte[] compile = output.compile();
 
-            clientSocket.getOutputStream().write(compile);
-            clientSocket.getOutputStream().flush();
+            PrintWriter writer = new PrintWriter(serverSocket.getOutputStream());
+            writer.println(new String(compile, StandardCharsets.UTF_8));
+            writer.flush();
             return true;
         } catch (Throwable ex) {
             return false;

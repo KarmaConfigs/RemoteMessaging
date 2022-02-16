@@ -356,7 +356,7 @@ public final class SSLServer extends SecureServer {
                                                                 clients.put(default_name, client);
                                                                 connections.put(channel, default_name);
 
-                                                                ClientConnectEvent event = new ClientConnectEvent(client);
+                                                                ClientConnectEvent event = new ClientConnectEvent(client, this);
                                                                 RemoteListener.callServerEvent(event);
 
                                                                 MessageOutput output = new MessageDataOutput();
@@ -399,7 +399,7 @@ public final class SSLServer extends SecureServer {
                                                                 clients.put(default_name, client);
                                                                 connections.put(channel, argument);
 
-                                                                ClientCommandEvent event = new ClientCommandEvent(client, command, argument);
+                                                                ClientCommandEvent event = new ClientCommandEvent(client, this, command, argument);
                                                                 RemoteListener.callServerEvent(event);
 
                                                                 MessageOutput output = new MessageDataOutput();
@@ -465,7 +465,7 @@ public final class SSLServer extends SecureServer {
                                                             clients.remove(default_name);
                                                             connections.remove(channel);
 
-                                                            ClientDisconnectEvent event = new ClientDisconnectEvent(client, DisconnectReason.KILLED_BY_CLIENT, argument);
+                                                            ClientDisconnectEvent event = new ClientDisconnectEvent(client, this, DisconnectReason.KILLED_BY_CLIENT, argument);
                                                             RemoteListener.callServerEvent(event);
                                                         } else {
                                                             MessageOutput output = new MessageDataOutput();
@@ -488,7 +488,7 @@ public final class SSLServer extends SecureServer {
                                                                 console.send("Unknown command from {0}: {1} ( {2} )", Level.WARNING, client.getName(), command, argument);
                                                             }
 
-                                                            ClientCommandEvent event = new ClientCommandEvent(client, command, argument);
+                                                            ClientCommandEvent event = new ClientCommandEvent(client, this, command, argument);
                                                             RemoteListener.callServerEvent(event);
                                                         } else {
                                                             MessageOutput output = new MessageDataOutput();
@@ -522,7 +522,7 @@ public final class SSLServer extends SecureServer {
                                                 writer.println(new String(compile, StandardCharsets.UTF_8));
                                                 writer.flush();
 
-                                                ClientMessageEvent event = new ClientMessageEvent(client, input);
+                                                ClientMessageEvent event = new ClientMessageEvent(client, this, input);
                                                 RemoteListener.callServerEvent(event);
                                             } else {
                                                 if (debug) {
@@ -612,6 +612,24 @@ public final class SSLServer extends SecureServer {
     }
 
     /**
+     * Get the server address
+     *
+     * @return the server address
+     */
+    @Override
+    public InetAddress getHost() {
+        try {
+            try {
+                return InetAddress.getByName(server);
+            } catch (Throwable ignored) {}
+
+            return InetAddress.getLocalHost();
+        } catch (Throwable ex) {
+            return InetAddress.getLoopbackAddress();
+        }
+    }
+
+    /**
      * Get the server MAC address
      *
      * @return the server MAC address
@@ -633,6 +651,27 @@ public final class SSLServer extends SecureServer {
             System.exit(1);
             return null;
         }
+    }
+
+    /**
+     * Get the server port
+     *
+     * @return the server port
+     */
+    @Override
+    public int getPort() {
+        return sv_port;
+    }
+
+    /**
+     * Send a message to the server
+     *
+     * @param message the message to send
+     * @return if the message could be sent
+     */
+    @Override
+    public boolean sendMessage(byte[] message) {
+        return false;
     }
 
     /**
@@ -782,14 +821,14 @@ public final class SSLServer extends SecureServer {
                 wait++;
             }
 
-            if (debug) {
-                long sec = TimeUnit.MILLISECONDS.toSeconds(wait);
-                console.send("Sent message to {0} after {1} {2}", Level.OK, name, (sec > 0 ? sec : wait), (sec > 0 ? "seconds" : "ms"));
-            }
-
             for (RemoteClient client : clients.values()) {
                 if (client.getName().equals(name) || client.getMAC().equals(name)) {
                     client.sendMessage(data);
+
+                    if (debug) {
+                        long sec = TimeUnit.MILLISECONDS.toSeconds(wait);
+                        console.send("Sent message to {0} after {1} {2}", Level.OK, name, (sec > 0 ? sec : wait), (sec > 0 ? "seconds" : "ms"));
+                    }
                 }
             }
         }).start();

@@ -17,6 +17,7 @@ package ml.karmaconfigs.remote.messaging.platform;
 import ml.karmaconfigs.api.common.karma.KarmaSource;
 import ml.karmaconfigs.api.common.timer.scheduler.LateScheduler;
 import ml.karmaconfigs.remote.messaging.remote.RemoteClient;
+import ml.karmaconfigs.remote.messaging.remote.RemoteServer;
 import ml.karmaconfigs.remote.messaging.util.WorkLevel;
 import ml.karmaconfigs.remote.messaging.util.message.MessageOutput;
 
@@ -26,7 +27,7 @@ import java.util.Set;
 /**
  * Remote message server interface
  */
-public abstract class Server implements KarmaSource {
+public abstract class Server extends RemoteServer implements KarmaSource {
 
     /**
      * Set the server debug status

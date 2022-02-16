@@ -16,6 +16,7 @@ package ml.karmaconfigs.remote.messaging.listener.event.server;
 
 import ml.karmaconfigs.remote.messaging.listener.ServerEvent;
 import ml.karmaconfigs.remote.messaging.remote.RemoteClient;
+import ml.karmaconfigs.remote.messaging.remote.RemoteServer;
 import ml.karmaconfigs.remote.messaging.util.message.MessageInput;
 
 /**
@@ -23,18 +24,30 @@ import ml.karmaconfigs.remote.messaging.util.message.MessageInput;
  */
 public class ClientMessageEvent extends ServerEvent {
 
+    private final RemoteServer server;
     private final MessageInput message;
 
     /**
      * Initialize the server event
      *
      * @param remote the remote client
+     * @param sv the remote server
      * @param data the message
      */
-    public ClientMessageEvent(final RemoteClient remote, final MessageInput data) {
+    public ClientMessageEvent(final RemoteClient remote, final RemoteServer sv, final MessageInput data) {
         super(remote);
 
+        server = sv;
         message = data;
+    }
+
+    /**
+     * Get the remote server
+     *
+     * @return the remote server
+     */
+    public RemoteServer getServer() {
+        return server;
     }
 
     /**

@@ -32,7 +32,7 @@ public final class TCPRemoteClient extends RemoteClient {
     private final String MAC;
     private final InetAddress host;
     private final int port;
-    private final SocketChannel serverSocket;
+    private final SocketChannel clientSocket;
 
     /**
      * Initialize the remote client
@@ -41,14 +41,14 @@ public final class TCPRemoteClient extends RemoteClient {
      * @param m the client MAC address
      * @param address the client address
      * @param incoming_port the client port
-     * @param server the server active socket
+     * @param socket the client active socket
      */
-    public TCPRemoteClient(final String client, final String m, final InetAddress address, final int incoming_port, final SocketChannel server) {
+    public TCPRemoteClient(final String client, final String m, final InetAddress address, final int incoming_port, final SocketChannel socket) {
         name = client;
         MAC = m;
         host = address;
         port = incoming_port;
-        serverSocket = server;
+        clientSocket = socket;
     }
 
     /**
@@ -107,7 +107,7 @@ public final class TCPRemoteClient extends RemoteClient {
             byte[] compile = output.compile();
             ByteBuffer buffer = ByteBuffer.wrap(compile);
 
-            serverSocket.write(buffer);
+            clientSocket.write(buffer);
             return true;
         } catch (Throwable ex) {
             return false;

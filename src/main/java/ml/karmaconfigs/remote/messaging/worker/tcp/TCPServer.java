@@ -209,7 +209,7 @@ public final class TCPServer extends Server {
                                                                     clients.put(default_name, client);
                                                                     connections.add(default_name);
 
-                                                                    ClientConnectEvent event = new ClientConnectEvent(client);
+                                                                    ClientConnectEvent event = new ClientConnectEvent(client, this);
                                                                     RemoteListener.callServerEvent(event);
 
                                                                     MessageOutput output = new MessageDataOutput();
@@ -247,7 +247,7 @@ public final class TCPServer extends Server {
                                                                 client = new TCPRemoteClient(argument, mac, incoming, port, channel);
                                                                 clients.put(default_name, client);
 
-                                                                ClientCommandEvent event = new ClientCommandEvent(client, command, argument);
+                                                                ClientCommandEvent event = new ClientCommandEvent(client, this, command, argument);
                                                                 RemoteListener.callServerEvent(event);
 
                                                                 MessageOutput output = new MessageDataOutput();
@@ -284,7 +284,7 @@ public final class TCPServer extends Server {
                                                                 clients.remove(default_name);
                                                                 connections.remove(default_name);
 
-                                                                ClientDisconnectEvent event = new ClientDisconnectEvent(client, DisconnectReason.KILLED_BY_CLIENT, argument);
+                                                                ClientDisconnectEvent event = new ClientDisconnectEvent(client, this, DisconnectReason.KILLED_BY_CLIENT, argument);
                                                                 RemoteListener.callServerEvent(event);
                                                             } else {
                                                                 MessageOutput output = new MessageDataOutput();
@@ -306,7 +306,7 @@ public final class TCPServer extends Server {
                                                                     console.send("Unknown command from {0}: {1} ( {2} )", Level.WARNING, client.getName(), command, argument);
                                                                 }
 
-                                                                ClientCommandEvent event = new ClientCommandEvent(client, command, argument);
+                                                                ClientCommandEvent event = new ClientCommandEvent(client, this, command, argument);
                                                                 RemoteListener.callServerEvent(event);
                                                             } else {
                                                                 MessageOutput output = new MessageDataOutput();
@@ -338,7 +338,7 @@ public final class TCPServer extends Server {
 
                                                     channel.write(writeBuffer);
 
-                                                    ClientMessageEvent event = new ClientMessageEvent(client, input);
+                                                    ClientMessageEvent event = new ClientMessageEvent(client, this, input);
                                                     RemoteListener.callServerEvent(event);
                                                 } else {
                                                     if (debug) {
@@ -400,6 +400,24 @@ public final class TCPServer extends Server {
     }
 
     /**
+     * Get the server address
+     *
+     * @return the server address
+     */
+    @Override
+    public InetAddress getHost() {
+        try {
+            try {
+                return InetAddress.getByName(server);
+            } catch (Throwable ignored) {}
+
+            return InetAddress.getLocalHost();
+        } catch (Throwable ex) {
+            return InetAddress.getLoopbackAddress();
+        }
+    }
+
+    /**
      * Get the server MAC address
      *
      * @return the server MAC address
@@ -421,6 +439,27 @@ public final class TCPServer extends Server {
             System.exit(1);
             return null;
         }
+    }
+
+    /**
+     * Get the server port
+     *
+     * @return the server port
+     */
+    @Override
+    public int getPort() {
+        return sv_port;
+    }
+
+    /**
+     * Send a message to the server
+     *
+     * @param message the message to send
+     * @return if the message could be sent
+     */
+    @Override
+    public boolean sendMessage(byte[] message) {
+        return false;
     }
 
     /**

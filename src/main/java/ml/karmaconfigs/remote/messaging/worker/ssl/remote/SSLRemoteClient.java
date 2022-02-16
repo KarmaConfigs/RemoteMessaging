@@ -19,21 +19,21 @@ import ml.karmaconfigs.remote.messaging.util.message.MessageDataOutput;
 import ml.karmaconfigs.remote.messaging.util.message.MessageOutput;
 import ml.karmaconfigs.remote.messaging.util.message.type.MergeType;
 
+import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Remote client information
  */
-public final class SSLRemoteClient extends RemoteClient {
+public class SSLRemoteClient extends RemoteClient {
 
     private final String name;
     private final String MAC;
     private final InetAddress host;
     private final int port;
-    private final Socket serverSocket;
+    private final Socket clientSocket;
 
     /**
      * Initialize the remote client
@@ -42,14 +42,14 @@ public final class SSLRemoteClient extends RemoteClient {
      * @param m the client MAC address
      * @param address the client address
      * @param incoming_port the client port
-     * @param server the server active socket
+     * @param socket the client active socket
      */
-    public SSLRemoteClient(final String client, final String m, final InetAddress address, final int incoming_port, final Socket server) {
+    public SSLRemoteClient(final String client, final String m, final InetAddress address, final int incoming_port, final Socket socket) {
         name = client;
         MAC = m;
         host = address;
         port = incoming_port;
-        serverSocket = server;
+        clientSocket = socket;
     }
 
     /**
@@ -101,14 +101,17 @@ public final class SSLRemoteClient extends RemoteClient {
     @Override
     public boolean sendMessage(final MessageOutput message) {
         try {
+            System.out.println("Sendin message");
+
             MessageOutput output = new MessageDataOutput(message, MergeType.DIFFERENCE);
             output.write("MAC", getMAC());
             output.write("COMMAND_ENABLED", false);
 
             byte[] compile = output.compile();
 
-            serverSocket.getOutputStream().write(compile);
-            serverSocket.getOutputStream().flush();
+            PrintWriter writer = new PrintWriter(clientSocket.getOutputStream());
+            writer.println(new String(compile, StandardCharsets.UTF_8));
+            writer.flush();
             return true;
         } catch (Throwable ex) {
             return false;

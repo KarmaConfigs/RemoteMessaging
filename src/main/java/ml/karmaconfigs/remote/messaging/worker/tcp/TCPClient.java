@@ -222,7 +222,7 @@ public final class TCPClient extends Client {
                                             award_connection = false;
                                             operative = true;
 
-                                            ServerConnectEvent event = new ServerConnectEvent(remote);
+                                            ServerConnectEvent event = new ServerConnectEvent(remote, this);
                                             RemoteListener.callClientEvent(event);
                                         } else {
                                             String argument = input.getString("ARGUMENT");
@@ -314,7 +314,7 @@ public final class TCPClient extends Client {
 
                                                             console.send("Server declined connection as {0}, because: {1}", Level.GRAVE, name, reason);
 
-                                                            ServerDisconnectEvent connectEvent = new ServerDisconnectEvent(remote, reason);
+                                                            ServerDisconnectEvent connectEvent = new ServerDisconnectEvent(remote, this, reason);
                                                             RemoteListener.callClientEvent(connectEvent);
                                                         }
 
@@ -333,7 +333,7 @@ public final class TCPClient extends Client {
                                                         if (data != null) {
                                                             console.send("Failed while trying to disconnect the server ( you've been disconnected anyway ): {0}", Level.GRAVE, data);
 
-                                                            ServerDisconnectEvent disconnectEvent = new ServerDisconnectEvent(remote, "no server reason...");
+                                                            ServerDisconnectEvent disconnectEvent = new ServerDisconnectEvent(remote, this, "no server reason...");
                                                             RemoteListener.callClientEvent(disconnectEvent);
                                                         }
 
@@ -365,7 +365,7 @@ public final class TCPClient extends Client {
                                                     console.send("Connection killed by server: {0}", Level.GRAVE, reason);
                                                 }
 
-                                                ServerDisconnectEvent event = new ServerDisconnectEvent(remote, reason);
+                                                ServerDisconnectEvent event = new ServerDisconnectEvent(remote, this, reason);
                                                 RemoteListener.callClientEvent(event);
 
                                                 close();
@@ -373,7 +373,7 @@ public final class TCPClient extends Client {
                                         }
                                     }
                                 } else {
-                                    ServerMessageEvent event = new ServerMessageEvent(remote, input);
+                                    ServerMessageEvent event = new ServerMessageEvent(remote, this, input);
                                     RemoteListener.callClientEvent(event);
                                 }
                             }
@@ -439,6 +439,37 @@ public final class TCPClient extends Client {
             System.exit(1);
             return null;
         }
+    }
+
+    /**
+     * Get the client address
+     *
+     * @return the client address
+     */
+    @Override
+    public InetAddress getHost() {
+        return InetAddress.getLoopbackAddress();
+    }
+
+    /**
+     * Get the client port
+     *
+     * @return the client port
+     */
+    @Override
+    public int getPort() {
+        return client;
+    }
+
+    /**
+     * Send a message to the client
+     *
+     * @param message the message to send
+     * @return if the message could be sent
+     */
+    @Override
+    public boolean sendMessage(MessageOutput message) {
+        return false;
     }
 
     /**
